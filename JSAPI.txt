@@ -1,0 +1,556 @@
+﻿JSON-API. Версия 0. http://api.knx.ru/v0/
+
+Необязательная часть в описании URL запросов заключена в квадратные скобки []
+Любой запрос GET может выдать не всю структуру, указанную в API, а только запрошенные поля, если указан параметр fields (см. ниже)
+
+---------------------------------------------------------------------------
+Общее начало всех запросов:
+1) поддомен api: http://api.knx.ru/
+2) первая часть url - версия api, целое число /v0/
+
+---------------------------------------------------------------------------
+Общие параметры GET-запросов:
+1) [?fields] - перечисление запрашиваемых полей для частичного ответа
+Пример:
+[?fields=user_name,description]
+
+2) [?filter] - фильтрация результатов (только для запросов, выдающих список результатов)
+Пример:
+[?filter=user_name(Serg*)+date(*01.03.2018)]
+Для фильтрации результатов запроса указывается поле, затем в круглых скобках условие фильтрации:
+- если условие без * - ищется полное соответствие,
+- если условие по числовому полю или по дате, * в начале означает отобрать все записи <= указанного значения,
+- если условие по числовому полю или по дате, * в конце означает отобрать записи >= указанного значения,
+- * в любом месте текстовых полей означает любые символы или их отсутствие
+- если необходимо проверить несколько условий со связкой, они соединяются знаком +, используется логическая связка "И"
+- для проверки поля на несколько условий по связке "ИЛИ", значения в скобках перечисляются через запятую
+
+Например: "filter=user(ski,mva,agu,tiv)+date(01.02.2018*)+date(*28.02.2018)" - выдать записи указанных пользователей за февраль 2018 года
+
+3) [?sort] - сортировка результатов (только для запросов, выдающих список результатов)
+Пример:
+[?sort=name+date(desc)]
+
+4) [?limit][?offset] - лимит и смещение (только для запросов, выдающих список результатов)
+Пример:
+[?limit=25&offset=50] - выдать 25 записей, начиная с 50й из общего списка результатов
+
+5) [?method=post,put,delete] - ручное задание метода запроса, использовать параметр для тестирования, позже его нужно будет удалить
+
+---------------------------------------------------------------------------
+Общий ответ на запросы действий PUT и POST: {code int, message string, id int}, где code:
+code = 200 OK
+code = 400 Bad Request (некорректный запрос)
+code = 500 Internal server error (внутренняя ошибка сервера)
+
+id - id добавленного элемента
+
+---------------------------------------------------------------------------
+Редактирование таблиц с программно-заданными значениями (const и enum)
+
+1) tregion
+Запрос: GET /region_types
+		GET /region_types/<id>
+Ответ:
+[
+	{
+		id		  int
+		user_name string
+		code_name string
+	}
+]
+
+Запрос: PUT /region_types/<id>?name=<Value>
+Запрос: POST /region_types/<id>?name=<Value>
+
+2) tparam
+Запрос: GET /param_types, аналогичный GET /result_types, см. ниже
+Запрос: PUT /param_types
+Запрос: POST /param_types
+
+3) tresult
+Запрос: GET /result_types
+Запрос: GET /result_types/<id>
+Ответ:
+{
+	[
+		{
+			id		 	int
+			user_name 	string
+			code_name 	string
+			description string
+		}
+	]
+}
+
+Запрос: PUT /result_types/<id>?name=<Value>[?description=<Value>]
+Запрос: POST /result_types/<id>[?name=<Value>][?description=<Value>]
+Пример: PUT http://api.knx.ru/v0/result_types/0?Name=Количество профлиста&Description=Число профлистов, которое требуется на весь забор
+
+4) tcalclation
+Запрос: GET /сalculation_types/, аналогичный GET /region_types
+Запрос: PUT /calculation_types/<id>?name=<value>
+
+5) cn_tparam_tregion:
+Запрос: GET /region_types/<id>/param_types
+Ответ: { [{id int}] }
+
+Запрос: PUT POST /region_types/<id>/param_types[?<param_id>,<param_id>,...]
+
+6) tparamvalue:
+Запрос: GET /param_types/<id>/values
+Ответ:
+{
+	[
+		{
+			value int
+			name  string
+		}
+	]
+}
+Запрос: PUT POST /param_types/<id>/values[?value=<Value>(<Name>)&value=<Value>(<Name>)&...]
+Запрос: DELETE /param_types/<id>/values[?value=<Value>&value=<Value>&...]
+
+---------------------------------------------------------------------------
+Редактирование таблиц пользовательских данных
+
+7) user
+Запрос: GET /users
+		GET /users/<Login>
+
+Ответ:
+{
+	[
+		{
+		    id       int 
+			login    string
+			name     string
+			phone    string
+			position string
+			comment  string
+		}
+	]
+}
+
+PUT /users?login=<Login>[?name=<Value>][?phone=<value>][?position=<value>][?comment=<value>]
+POST /users/<login>[?name=<Value>][?phone=<value>][?position=<value>][?comment=<value>]
+
+8) client
+GET /clients
+GET /clients/<id>
+
+Ответ:
+{
+	[
+		{
+			id       int
+			name     string
+			comment  string
+		}
+	]
+}
+
+9) project
+GET /clients/<id>/projects
+GET /projects
+GET /projects/<project_id>
+
+Ответ:
+{
+	[
+		{
+			id             int
+			contract_date  string
+			install_date   string
+			comment        string
+			user: {
+			    id         int
+				name       string
+				phone      string
+				position   string
+				comment    string
+			}
+			client: {
+				id         int
+				name       string
+				comment    string
+			}
+		}
+	]
+}
+
+PUT /clients/<id>/projects?contract_date=<value>[?install_date=<value>][?comment=<value>]
+POST /project/<project_id>[?contract_date=<value>][?install_date=<value>][?comment=<value>]
+
+10) region
+GET /projects/<id>/regions
+GET /projects/<id>/regions/<id>
+
+Ответ:
+	[
+		{
+			id             int
+			description    string
+			region_type   {
+			     id        int
+			     user_name string
+			     code_name string
+			}
+			params [
+				{
+					param_type   {id int, name string, description string}
+					value        float
+					control      int /*Тип элемента интерфейса: поле для ввода, комбо-бокс, галочка,...*/
+					/*1: checkbox
+					2: editbox для любого текста
+					3: editbox для числа
+					4: кнопка выбора цвета
+					5: combobox нередактируемый
+					6: combobox редактируемый с фильтрацией*/
+					enabled      bool
+					visible      bool
+					value_list   [
+						{
+							value float
+							name string
+						}
+					]
+				}
+			]
+			parts: [
+				{
+					id   int
+					name string
+					calculation_type_id int
+					nomenclature {
+						id    int
+						name  string
+						list  bool /*показывает, есть ли список для выбора номенклатуры, или это значение не может поменяться*/
+						empty bool /*показывает, может ли не указывыть номенклатуру для этой части*/
+					}
+				}
+			]
+			components [
+				{
+					id  int
+					component_type: {
+						id   int
+						name string
+					}
+
+					/*Для GUI:*/
+					/*Содержимое компонента разбито по секциям, каждая секция содержит параметры и части для выбора номенклатуры*/
+					/*Параметры одной секции влияют на выбор номенклатуры этой секции и, возможно, на выбор других параметров секции*/
+					/*Секция может не содержать параметров, если для номенклатура секции от параметров не зависит*/
+					sections: [
+						{
+							params []int /*id параметров из массива params этого участка*/
+							parts  []int /*id частей из массива parts этого участка*/
+						}
+					]
+				}
+			]
+		}
+	]
+
+PUT /projects/<id>/regions?region_type=<Value>[?description=<value>][?param=<param_id>(<value>)&param=<param_id>(<value>)&...]
+POST /projects/<id>/regions/<id>[?description=<value>][?param=<param_id>(<value>)&param=<param_id>(<value>)&...]
+DELETE /projects/<id>/regions/<id>
+
+11) result
+
+GET /projects/<id>/results
+{
+    [
+		region {
+			nr  int
+			region_type   {
+			     id        int
+			     user_name string
+			     code_name string
+			}
+		}
+		[
+				{
+					result_type  {id int, name string, description string}
+					value        string
+					nomenclature {id int, ...}
+				}
+		]
+	]
+}
+
+GET /projects/<id>/regions/<id>/results
+{
+		[
+				{
+					result_type  {id int, name string, description string}
+					value        string
+					nomenclature {id int, ...}
+				}
+		]
+}
+
+PUT и POST запросы на results выдают ошибку - результаты могут заполнять только функции расчета
+
+12) tcomponent
+GET /component_types
+GET /component_types/<id>
+[
+	{
+		id    int
+		name  string
+	}
+]
+
+PUT /component_types?name=<value>
+POST /component_types/<id>?name=<value>
+
+13) cn_tregion_tcomponent
+GET /region_types/<id>/component_types
+[{id int, name string}]
+
+PUT, POST /region_types/<id>/component_types?[<id>,<id>,...]
+
+14) color_scheme
+GET /color_schemes
+GET /color_schemes/<id>
+[
+	{
+		id int
+		name string
+		colors : [
+			{ name string, value int}
+		]
+	}
+]
+
+PUT /color_schemes[?name=<value>][?color=<value>[(<name>)]&color=<value>[(<name>)]&...]
+POST /color_schemes/<id>[?name=<value>][?color=<value>[(<name>)]&color=<value>[(<name>)]&...]
+
+15) tnomenclature
+GET /nomenclature_types
+GET /nomenclature_types/<id>
+
+[
+	{
+		id 				int
+		name 			string
+		color_scheme_id int
+		use_fields: [<field_name>, <field_name>, ...]
+	}
+]
+
+PUT /nomenclature_types?name=<value>[?color_scheme_id=<value>][?use_fields=<field_name>,<field_name>,...]
+POST /nomenclature_types/<id>?name=<value>[?color_scheme_id=<value>][?use_fields=<field_name>,<field_name>,...]
+
+16) tpart
+GET /component_types/<id>/part_types
+GET /component_types/<id>/part_types/<id>
+
+[
+	{
+		id   int
+		name string
+		calculation_type_id int
+	}
+]
+
+PUT /component_types/<id>/part_types?name=<value>[?calculation_type_id=<value>]
+POST /component_types/<id>/part_types/<id>[?name=<value>][?calculation_type_id=<value>]
+
+17) cn_tparam_tpart
+GET /param_types/<id>/part_types
+
+[
+	{
+		id		int
+		name    string
+		calculation_type_id int
+		component_type: {
+			id    int
+			name  string
+		}
+]
+
+PUT, POST /part_types/<id>/part_types?<id>,<id>,...
+
+18) nomenclature
+a) GET /nomenclature
+   GET /nomenclature/<id>
+b) GET /nomenclature_types/<id>/nomenclature
+
+/*Будут выведены только те поля, которые перечислены в nomenclature_type.use_fields*/
+
+[
+	{
+		nomenclature_type: { /*Только для варианта a)*/
+			id 				int
+			name 			string
+			color_scheme_id int
+			use_fields: [<field_name>, <field_name>, ...]
+		}
+		id          int
+		name        string
+		vendor_code string
+		mesure_unit string
+		material    string
+		thickness   double
+		color: {
+			id 		int
+			name 	string
+			value 	int
+		}
+		size        double
+		price       int
+		division: [<value double>, <value double>, ...]
+		division_service_nomenclature: {
+			id   int
+			name string
+			vendor_code string
+			mesure_unit string
+			price       int
+		}
+	}
+]
+
+PUT /nomenclature_types/<id>/nomenclature?name=<value>[?vendor_code=<value>][mesure_unit=<value>]
+	[?material=<value>][?thickness=<value>][?color_id=<value>][?size=<value>][division=<value>,<value>,...][division_service_nomenclature_id=<value>]
+	
+POST /nomenclature_types/<id>/nomenclature/<id>[?те же параметры, что и в PUT]
+
+19) cn_tpart_nomenclature
+GET /component_types/<id>/part_types/<id>/nomenclature
+[
+	/*Структуры, аналогичные ответу GET /nomenclature*/
+]
+
+PUT, POST /component_types/<id>/part_types/<id>/nomenclature?<id>,<id>,...
+
+20) cn_tparamvalue_nomenclature
+GET /param_types/<id>/values/<value>/nomenclature
+[
+	/*Структуры, аналогичные ответу GET /nomenclature*/
+]
+
+PUT, POST /param_types/<id>/values/<value>/nomenclature?<id>,<id>,...
+
+21) price
+GET /nomenclature/<id>/price
+[
+	{
+		date  		string
+		price 		int /*Цены в копейках*/
+		cost_price 	int
+	}
+]
+
+GET /nomenclature/<id>/price?date=<value>
+{
+	price 		int /*Цены в копейках*/
+	cost_price 	int
+}
+
+PUT, POST /nomenclature/<id>/price?date=<value>[?price=<value>][?cost_price=<value>]
+
+22) component
+GET /projects/<id>/regions/<id>/components
+GET /projects/<id>/regions/<id>/components/<id>
+
+[
+	{
+		id  int
+		component_type: {
+			id   int
+			name string
+		}
+		part_types: [
+			{
+				id   int
+				name string
+				calculation_type_id int
+			}
+		]
+	}
+]
+
+PUT, POST /projects/<id>/regions/<id>/components?component_type=<id>,<id>,...
+
+23) part ? Дублирует tpart, значение выбранной части не выдает (выбранной пользователем номенклатуры)
+GET /projects/<id>/regions/<id>/components/<id>/parts
+GET /projects/<id>/regions/<id>/components/<id>/parts/<id>
+
+[
+	{
+		part_type: {
+			id   int
+			name string
+			calculation_type_id int
+		}
+		nomenclature: {id int,...}
+	}
+]
+
+
+---------------------------------------------------------------------------
+GUI, реакция на действия пользователя
+
+24) Редактирование параметров проекта
+
+(запрос из п. 10)
+POST /projects/<id>/regions/<id>[?description=<value>][?param=<param_id>(<value>)&param=<param_id>(<value>)&...]
+
+Запрос изменяет значения параметров проекта в бд и возвращает зависимые параметры и части проекта, на которые повлияло изменение параметров.
+Ответ расширенный, содержит параметры и части, на значения которых повлияло изменение параметра, и значения, которые могли измениться:
+{
+	dependent_params: [
+	/*присутствует в списке, если изменилось одно или несколько:
+ 		- значение паарметра,
+ 		- либо список доступных значений,
+ 		- доступность или видимость контрола*/
+		{
+			id int
+			value        float
+			enabled      bool
+			visible      bool
+			value_list   [
+				{
+					value float
+					name string
+				}
+			]
+		}
+	]
+	dependent_parts: [
+	/*присутствует в списке, если изменилось одно или несколько:
+		- значение номенклатуры,
+		- список номенклатуры сократился до одного значения*/	
+		{
+			id int
+			nomenclature {
+				id int
+				name string
+				list  bool /*показывает, есть ли список для выбора номенклатуры, или это значение не может поменяться*/
+			}
+
+		}
+	]
+}
+
+25) Подбор номенклатуры для списка в комбо-боксе какой-либо части
+
+GET /projects/<id>/regions/<id>/parts/<id>[?value=<value>]
+
+Возвращает список подходящей номенклатуры для указанной части проекта,
+учитывая все установленные на проекте параметры и фильтруя результат по введенному пользователем имени номенклатуры
+Ответ:
+{
+
+	nomenclature: [
+		{
+			id   int
+			name string
+		}
+	]
+}
+
