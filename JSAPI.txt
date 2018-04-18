@@ -83,9 +83,8 @@ id - id добавленного элемента
 	]
 }
 
-Запрос: PUT /result_types/<id>?name=<Value>[?description=<Value>]
 Запрос: POST /result_types/<id>[?name=<Value>][?description=<Value>]
-Пример: PUT http://api.knx.ru/v0/result_types/0?Name=Количество профлиста&Description=Число профлистов, которое требуется на весь забор
+Пример: POST http://api.knx.ru/v0/result_types/0?Name=Количество профлиста&Description=Число профлистов, которое требуется на весь забор
 
 4) tcalclation
 Запрос: GET /сalculation_types/, аналогичный GET /region_types
@@ -103,20 +102,20 @@ id - id добавленного элемента
 {
 	[
 		{
-			value int
+			value float
 			name  string
 		}
 	]
 }
-Запрос: PUT POST /param_types/<id>/values[?value=<Value>(<Name>)&value=<Value>(<Name>)&...]
-Запрос: DELETE /param_types/<id>/values[?value=<Value>&value=<Value>&...]
+Запрос: PUT POST /param_types/<id>/values[?<Value>(<Name>),<Value>(<Name>),...]
+Запрос: DELETE /param_types/<id>/values[?<Value>,<Value>,...]
 
 ---------------------------------------------------------------------------
 Редактирование таблиц пользовательских данных
 
 7) user
 Запрос: GET /users
-		GET /users/<Login>
+		GET /users/<login>
 
 Ответ:
 {
@@ -132,8 +131,9 @@ id - id добавленного элемента
 	]
 }
 
-PUT /users?login=<Login>[?name=<Value>][?phone=<value>][?position=<value>][?comment=<value>]
+PUT /users?login=<login>[?name=<Value>][?phone=<value>][?position=<value>][?comment=<value>]
 POST /users/<login>[?name=<Value>][?phone=<value>][?position=<value>][?comment=<value>]
+DELETE /users/<login>
 
 8) client
 GET /clients
@@ -145,10 +145,15 @@ GET /clients/<id>
 		{
 			id       int
 			name     string
+			phone    string
 			comment  string
 		}
 	]
 }
+
+PUT /clients?name=<value>[?comment=<value>]
+POST /clients/<id>[?name=<value>][?comment=<value>]
+DELETE /clients/<id>
 
 9) project
 GET /clients/<id>/projects
@@ -173,6 +178,7 @@ GET /projects/<project_id>
 			client: {
 				id         int
 				name       string
+				phone      string
 				comment    string
 			}
 		}
@@ -190,6 +196,8 @@ GET /projects/<id>/regions/<id>
 	[
 		{
 			id             int
+			nr             string
+			address        string
 			description    string
 			region_type   {
 			     id        int
@@ -253,8 +261,8 @@ GET /projects/<id>/regions/<id>
 		}
 	]
 
-PUT /projects/<id>/regions?region_type=<Value>[?description=<value>][?param=<param_id>(<value>)&param=<param_id>(<value>)&...]
-POST /projects/<id>/regions/<id>[?description=<value>][?param=<param_id>(<value>)&param=<param_id>(<value>)&...]
+PUT /projects/<id>/regions?region_type=<Value>[?description=<value>][?params=<param_id>(<value>),<param_id>(<value>),...]
+POST /projects/<id>/regions/<id>[?description=<value>][?params=<param_id>(<value>),<param_id>(<value>),...]
 DELETE /projects/<id>/regions/<id>
 
 11) result
@@ -263,13 +271,15 @@ GET /projects/<id>/results
 {
     [
 		region {
-			nr  int
+			id             int
+			description    string
 			region_type   {
 			     id        int
 			     user_name string
 			     code_name string
 			}
-		}
+		},
+		results:
 		[
 				{
 					result_type  {id int, name string, description string}
@@ -325,8 +335,8 @@ GET /color_schemes/<id>
 	}
 ]
 
-PUT /color_schemes[?name=<value>][?color=<value>[(<name>)]&color=<value>[(<name>)]&...]
-POST /color_schemes/<id>[?name=<value>][?color=<value>[(<name>)]&color=<value>[(<name>)]&...]
+PUT /color_schemes[?name=<value>][?colors=<value>[(<name>)],<value>[(<name>)],...]
+POST /color_schemes/<id>[?name=<value>][?colors=<value>[(<name>)],color=<value>[(<name>)],...]
 
 15) tnomenclature
 GET /nomenclature_types
@@ -373,7 +383,7 @@ GET /param_types/<id>/part_types
 		}
 ]
 
-PUT, POST /part_types/<id>/part_types?<id>,<id>,...
+PUT, POST /param_types/<id>/part_types?<id>,<id>,...
 
 18) nomenclature
 a) GET /nomenclature
@@ -417,7 +427,7 @@ b) GET /nomenclature_types/<id>/nomenclature
 PUT /nomenclature_types/<id>/nomenclature?name=<value>[?vendor_code=<value>][mesure_unit=<value>]
 	[?material=<value>][?thickness=<value>][?color_id=<value>][?size=<value>][division=<value>,<value>,...][division_service_nomenclature_id=<value>]
 	
-POST /nomenclature_types/<id>/nomenclature/<id>[?те же параметры, что и в PUT]
+POST /nomenclature/<id>[?те же параметры, что и в PUT]
 
 19) cn_tpart_nomenclature
 GET /component_types/<id>/part_types/<id>/nomenclature
@@ -498,7 +508,7 @@ GUI, реакция на действия пользователя
 24) Редактирование параметров проекта
 
 (запрос из п. 10)
-POST /projects/<id>/regions/<id>[?description=<value>][?param=<param_id>(<value>)&param=<param_id>(<value>)&...]
+POST /projects/<id>/regions/<id>[?description=<value>][?params=<param_id>(<value>),<param_id>(<value>),...]
 
 Запрос изменяет значения параметров проекта в бд и возвращает зависимые параметры и части проекта, на которые повлияло изменение параметров.
 Ответ расширенный, содержит параметры и части, на значения которых повлияло изменение параметра, и значения, которые могли измениться:
