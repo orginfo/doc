@@ -151,8 +151,8 @@ GET /clients/<id>
 	]
 }
 
-PUT /clients?name=<value>[?comment=<value>]
-POST /clients/<id>[?name=<value>][?comment=<value>]
+PUT /clients?name=<value>[?comment=<value>][?phone=<value>]
+POST /clients/<id>[?name=<value>][?comment=<value>][?phone=<value>]
 DELETE /clients/<id>
 
 9) project
@@ -185,8 +185,8 @@ GET /projects/<project_id>
 	]
 }
 
-PUT /clients/<id>/projects?contract_date=<value>[?install_date=<value>][?comment=<value>]
-POST /project/<project_id>[?contract_date=<value>][?install_date=<value>][?comment=<value>]
+PUT /clients/<id>/projects?contract_date=<value>[?install_date=<value>][?comment=<value>][?address=<value>][?nr=<value>]
+POST /project/<project_id>[?contract_date=<value>][?install_date=<value>][?comment=<value>][?address=<value>][?nr=<value>]
 
 10) region
 GET /projects/<id>/regions
